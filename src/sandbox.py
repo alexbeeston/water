@@ -4,27 +4,32 @@ from torch.utils.data import Dataset
 import os
 import sys
 import csv
+from PIL import Image
+import torchvision.transforms as transforms
 
 class ConcreteImages(Dataset):
     def __init__(self, pathToDir):
-        self.labeledTensors = []
         pathToIndexFile = os.path.join(pathToDir, 'index.csv')
         indexFile = open(pathToIndexFile)
-        FILENAME = 0
-        LABEL = 1
+        self.index = []
+        self.FILENAME = 0
+        self.LABEL = 1
         for line in csv.reader(indexFile):
-            pathToImage = os.path.join(pathToDir, line[FILENAME])
-            label = line[LABEL]
-            self.labeledTensors.append((label, pathToImage))
+            pathToImage = os.path.join(pathToDir, line[self.FILENAME])
+            label = line[self.LABEL]
+            self.index.append((pathToImage, label))
         indexFile.close()
 
-
     def __len__(self):
-        return len(self.labeledTensors)
+        return len(self.index)
 
-
-    def __getitem__(self, index):
-        return self.labeledTensors[index]
+    def __getitem__(self, i):
+        pathToImage = self.index[i][self.FILENAME]
+        image = Image.open(pathToImage)
+        imageConverter = transforms.ToTensor()
+        tensor = imageConverter(image)
+        image.close()
+        return (tensor, self.index[i][self.LABEL])
 
 
 if len(sys.argv) != 2:
@@ -32,5 +37,7 @@ if len(sys.argv) != 2:
 
 pathToDir = sys.argv[1]
 concreteImages = ConcreteImages(pathToDir)
-for i in concreteImages.labeledTensors[:10]:
-    print(i)
+for i in range(len(concreteImages)):
+    tensor = concreteImages[i]
+    if i % 100 == 0:
+        print(f'loaded images {i} of {len(concreteImages)}')
