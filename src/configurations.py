@@ -1,0 +1,5 @@
+hyperParams = {
+    'folds': 5
+}
+
+

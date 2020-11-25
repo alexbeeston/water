@@ -1,58 +1,53 @@
 from PIL import Image
 import os
-
-
-def getImages():
-	originalImages = []
-	for originalFile in os.listdir():
-		if originalFile.endswith('.jpg'):
-			originalImages.append(originalFile)
-	return originalImages
+from helpers import buildListOfPaths
 
 
 def getNewFileName(oldName, key):
-	return oldName.split('.')[0] + '_' + key + '.jpg'
+	oldName, extension = os.path.splitext(oldName)
+	newName = oldName + '_' + key + extension
+	return newName
 
 
-def applyTransformations(transformations):
-	for imageFile in getImages():
-		image = Image.open(imageFile)
+def applyTransformations(transformations, dir):
+	for pathToImage in buildListOfPaths(dir):
+		image = Image.open(pathToImage)
 		for key in transformations.keys():
-			temp = image.transpose(transformations[key])
-			fileName = getNewFileName(imageFile, key)
-			temp.save(fileName)
+			transformedImage = image.transpose(transformations[key])
+			fileName = getNewFileName(pathToImage, key)
+			transformedImage.save(fileName)
 
 		
-def applyTints(tints):
-	for imageFile in getImages():
-		image = Image.open(imageFile)
+def applyTints(tints, dir):
+	for pathToImage in buildListOfPaths(dir):
+		image = Image.open(pathToImage)
 		for key in tints.keys():
 			tint = Image.new('RGB', image.size, color=tints[key])
 			tintFactor = .5
-			temp = Image.blend(image, tint, tintFactor)
-			fileName = getNewFileName(imageFile, key)
-			temp.save(fileName)
+			transformedImage = Image.blend(image, tint, tintFactor)
+			fileName = getNewFileName(pathToImage, key)
+			transformedImage.save(fileName)
 
 
-rotations = {
-	'_rot90': Image.ROTATE_90,
-	'_rot180': Image.ROTATE_180,
-	'_rot270': Image.ROTATE_270
-	}
-applyTransformations(rotations)
+def doTransforms(dir):
+	rotations = {
+		'_rot90': Image.ROTATE_90,
+		'_rot180': Image.ROTATE_180,
+		'_rot270': Image.ROTATE_270
+		}
+	applyTransformations(rotations, dir)
+	print(f'applied rotation transformations to images in {dir}')
 
+	flips = {
+		'_flip': Image.FLIP_LEFT_RIGHT
+		}
+	applyTransformations(flips, dir)
+	print(f'applied flip transformations to images in {dir}')
 
-
-flips = {
-	'_flip': Image.FLIP_LEFT_RIGHT
-	}
-applyTransformations(flips)
-
-
-
-tints = {
-	'_red': 'red',
-	'_blue': 'blue',
-	'_green': 'green'
-	}
-applyTints(tints)
+	tints = {
+		'_red': 'red',
+		'_blue': 'blue',
+		'_green': 'green'
+		}
+	applyTints(tints, dir)
+	print(f'applied color tinting transformations to images in {dir}')
