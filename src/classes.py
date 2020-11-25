@@ -4,7 +4,7 @@ import helpers
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 from PIL import Image
-
+import sys
 
 class ImageDataset(Dataset):
     def __init__(self, labeledImages):
@@ -53,10 +53,10 @@ class KFoldSplitter:
     def getDataSets(self, fold):
         TRAINING = 0
         VALIDATION = 1
-        posTraining = self.__selectSamples(self.posIndices[fold][TRAINING], self.pathsToPos, self.posLabel)
-        posValidation = self.__selectSamples(self.posIndices[fold][VALIDATION], self.pathsToPos, self.posLabel)
-        negTraining = self.__selectSamples(self.negIndices[fold][TRAINING], self.pathsToNeg, self.negLabel)
-        negValidation = self.__selectSamples(self.negIndices[fold][VALIDATION], self.pathsToNeg, self.negLabel)
+        posTraining = self.__selectSamples(self.posIndices[fold][TRAINING], self.pathsToPos, 1)
+        posValidation = self.__selectSamples(self.posIndices[fold][VALIDATION], self.pathsToPos, 1)
+        negTraining = self.__selectSamples(self.negIndices[fold][TRAINING], self.pathsToNeg, 0)
+        negValidation = self.__selectSamples(self.negIndices[fold][VALIDATION], self.pathsToNeg, 0)
         trainingData = posTraining + negTraining
         validationData = posValidation + negValidation
         return ImageDataset(trainingData), ImageDataset(validationData)

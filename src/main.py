@@ -1,12 +1,13 @@
 from transform import doTransforms
 import classes
+from helpers import train, getDataLoader, getBatchSize
 import sys
 from configurations import hyperParams
 from torchvision import models
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from torch.utils.data import DataLoader
+from numpy import mean
 
 if len(sys.argv) < 3:
     print('Usage: python3 main.py posDir negDir [--transform]')
@@ -22,14 +23,15 @@ if len(sys.argv) == 4 and sys.argv[3] == '--transform':
 
 kFoldSplitter = classes.KFoldSplitter(posDir, negDir, hyperParams['folds'])
 
-trainingAccuracyByFold = []
-validationAccuracyByFold = []
+trainAccuracies = []
+valAccuracies = []
+lastTrainAccuracies = []
+lastValAccuracies = []
 for fold in range(hyperParams['folds']):
-    print(f'Fold {fold + 1}:')
     model = models.resnet18(pretrained=True)
     lastLayerInputSize = model.fc.in_features
     model.fc = nn.Linear(lastLayerInputSize, 2)
-    criterion = nn.CrossEntropyLoss()
+    criteria = nn.CrossEntropyLoss()
     optimizer = optim.SGD(
         model.parameters(),
         lr=hyperParams['learningRate'],
@@ -37,60 +39,33 @@ for fold in range(hyperParams['folds']):
     )
     scheduler = lr_scheduler.StepLR(
         optimizer,
-        step_size=hyperParams['stepSize'],
+        step_size=hyperParams['schedulerStepSize'],
         gamma=hyperParams['gamma']
     )
-    trainingSet, validationSet = kFoldSplitter.getDataSets(fold)
-    # can remove duplicate code
-    trainingLoader = DataLoader(
-        trainingSet,
-        batch_size=int(hyperParams['batchSizeFactor'] * len(trainingSet)),
-        shuffle=True,
-        num_workers=hyperParams['numWorkers']
+    trainSet, valSet = kFoldSplitter.getDataSets(fold)
+    trainLoader = getDataLoader(trainSet)
+    valLoader = getDataLoader(valSet)
+
+    if fold == 0:
+        print(f'** length of training set: {len(trainSet)}')
+        print(f'** length of val set: {len(valSet)}')
+        print(f'** training batch size: {getBatchSize(trainSet)}')
+        print(f'** validation batch size: {getBatchSize(valSet)}')
+
+    print(f'Fold {fold + 1}:')
+    trainAccuracy, valAccuracy = train(
+        model,
+        optimizer,
+        criteria,
+        trainLoader,
+        valLoader,
+        len(trainSet),
+        len(valSet)
     )
-    validationLoader = DataLoader(
-        validationSet,
-        batch_size=int(hyperParams['batchSizeFactor'] * len(validationSet)),
-        shuffle=True,
-        num_workers=hyperParams['numWorkers']
-    )
-
-
-#     trainingAccuracies = []
-#     validationAccuracies = []
-#     trainingData, validationData = splitData(data)
-#     model.train()
-
-    # # DRAFTED
-    # for epoch in range(EPOCHS):
-    #     print(f'   Epoch {epoch + 1}')
-    #     # training
-    #     correct = 0
-    #     for labelBatch, imageBatch in trainingLoader:
-    #         classifications = classifier(imageBatch)
-    #         optimizer.zero_grad()
-    #         loss = criteria(classifications, labelBatch)
-    #         loss.backwards()
-    #         optimizer.step()
-    #         correct += getNumberCorrect(classifications, labelBatch)
-    #     trainingAccuracy = correct * 100 / len(trainingLoader.data)
-    #     trainingAccuracies.append(trainingAccuracy)
-    #     print(f'      Training Accuracy: {round(trainingAccuracy, 2)}%')
-    #
-    #     # validation
-    #     correct = 0
-    #     with torch.no_grad():
-    #         for labelBatch, imageBatch in validationLoader:
-    #             # with no gradient (?)
-    #             classifications = classifier(imageBatch)
-    #             correct += getNumberCorrect(classifications, labelBatch)
-    #     validationAccuracy = correct * 100 / len(validationLoader.data)
-    #     validationAccuracies.append(trainingAccuracy)
-    #     print(f'      Validation Accuracy: {round(validationAccuracy, 2)}%')
-    #
-    #     # save state? Look at HW 4
-    #
-    #
-    # trainingAccuraciesByFold.append(trainingAccuracies)
-    # validationAccuraciesByFold.append(validationAccuracies)
+    trainAccuracies.append(trainAccuracy)
+    valAccuracies.append(valAccuracy)
+    lastTrainAccuracies.append(trainAccuracy[-1])
+    lastValAccuracies.append(valAccuracy[-1])
+    print(f'Average training accuracy after {fold + 1} folds: {round(mean(lastTrainAccuracies), 2)}%.')
+    print(f'Average validation accuracy after {fold + 1} folds: {round(mean(lastValAccuracies), 2)}%.')
 
