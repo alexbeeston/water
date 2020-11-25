@@ -1,41 +1,32 @@
 import os
 from sklearn.model_selection import KFold
 import helpers
+from torch.utils.data import Dataset
+import torchvision.transforms as transforms
+from PIL import Image
 
 
-# from torchvision import models
-# import torch.nn as nn
-# import torch.optim as optim
-# from torch.utils.data import Dataset
-# from PIL import Image
-# import torchvision.transforms as transforms
+class ImageDataset(Dataset):
+    def __init__(self, labeledImages):
+        self.labeledImages = labeledImages
+        PRETRAINED_MEAN = [0.485, 0.456, 0.406]
+        PRETRAINED_STD = [0.229, 0.224, 2.225]
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=PRETRAINED_MEAN, std=PRETRAINED_STD)
+        ])
 
-# class ConcreteImages(Dataset):
-#     def __init__(self, pathToDir):
-#         pathToIndexFile = os.path.join(pathToDir, 'index.csv')
-#         indexFile = open(pathToIndexFile)
-#         self.index = []
-#         for line in csv.reader(indexFile):
-#             pathToImage = os.path.join(pathToDir, line[self.FILENAME])
-#             label = line[self.LABEL]
-#             self.index.append((pathToImage, label))
-#         indexFile.close()
-#         PRETRAINED_MEAN = [0.485, 0.456, 0.406]
-#         PRETRAINED_STD = [0.229, 0.224, 2.225]
-#         self.transforms = transforms.Compose([
-#             transforms.ToTensor(),
-#             transforms.Normalize(mean=PRETRAINED_MEAN, std=PRETRAINED_STD)
-#         ])
-#
-#     def __len__(self):
-#         return len(self.index)
-#
-#     def __getitem__(self, i):
-#         pathToImage = self.index[i][self.FILENAME]
-#         image = Image.open(pathToImage)
-#         tensor = self.transforms(image)
-#         image.close()
-#         return (tensor, self.index[i][self.LABEL])
+    def __len__(self):
+        return len(self.labeledImages)
+
+    def __getitem__(self, i):
+        PATH = 0
+        pathToImage = self.labeledImages[i][PATH]
+        image = Image.open(pathToImage)
+        tensor = self.transforms(image)
+        image.close()
+        LABEL = 1
+        return tensor, self.labeledImages[i][LABEL]
 
 class KFoldSplitter:
     def __init__(self, posDir, negDir, k):
@@ -66,4 +57,6 @@ class KFoldSplitter:
         posValidation = self.__selectSamples(self.posIndices[fold][VALIDATION], self.pathsToPos, self.posLabel)
         negTraining = self.__selectSamples(self.negIndices[fold][TRAINING], self.pathsToNeg, self.negLabel)
         negValidation = self.__selectSamples(self.negIndices[fold][VALIDATION], self.pathsToNeg, self.negLabel)
-        return posTraining + negTraining, posValidation + negValidation
+        trainingData = posTraining + negTraining
+        validationData = posValidation + negValidation
+        return ImageDataset(trainingData), ImageDataset(validationData)
