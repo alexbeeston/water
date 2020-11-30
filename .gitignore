@@ -1,2 +1,5 @@
-sandbox/
 data/transformed
+data/subset
+data/sandbox
+data/launchPad
+.idea
