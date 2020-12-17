@@ -12,3 +12,5 @@ This program first classifies images of concrete based on whether or not they ar
 3. Activate virtual environment with `pipenv shell`.
 4. Run the classifier as `python3 src/main.py dir/to/positive/samples dir/to/negative/samples`. For example, to classify the sample images, run `python3 src/main.py data/croppedImages/cracked data/croppedImages/intact`.
 5. Observe or redirect the console output to a log file.
+
+If running the segmenter: run `segmentor.m`, rename the targetted file to whatever file the segmenter should be run on.
